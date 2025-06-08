@@ -267,7 +267,7 @@ export default function ChatPage() {
 
     // Save chat session to localStorage whenever messages change
     useEffect(() => {
-        if (messages.length > 0) {
+        if (messages.length > 0 && chatSession) {
             try {
                 const savedChats = localStorage.getItem("chatSessions");
                 const chatSessions: ChatSession[] = savedChats
@@ -280,6 +280,16 @@ export default function ChatPage() {
                 if (existingSessionIndex >= 0) {
                     // Update existing session
                     const existingSession = chatSessions[existingSessionIndex];
+
+                    // Check if messages have actually changed by comparing lengths and last message
+                    const hasNewMessages =
+                        messages.length !== existingSession.messages.length ||
+                        (messages.length > 0 &&
+                            existingSession.messages.length > 0 &&
+                            messages[messages.length - 1].content !==
+                                existingSession.messages[
+                                    existingSession.messages.length - 1
+                                ].content);
 
                     // Update title from first user message if it's still "New Chat"
                     let updatedTitle = existingSession.title;
@@ -300,7 +310,12 @@ export default function ChatPage() {
                         ...existingSession,
                         title: updatedTitle,
                         messages,
-                        updatedAt: new Date(),
+                        // Only update timestamp if there are new messages or title changed
+                        updatedAt:
+                            hasNewMessages ||
+                            updatedTitle !== existingSession.title
+                                ? new Date()
+                                : existingSession.updatedAt,
                     };
 
                     chatSessions[existingSessionIndex] = updatedSession;
@@ -335,11 +350,14 @@ export default function ChatPage() {
                     "chatSessions",
                     JSON.stringify(chatSessions)
                 );
+
+                // Dispatch custom event to notify sidebar of changes
+                window.dispatchEvent(new CustomEvent("chatSessionsUpdated"));
             } catch (error) {
                 console.error("Error saving chat session:", error);
             }
         }
-    }, [messages, chatId]);
+    }, [messages, chatId, chatSession]);
 
     const adjustHeight = () => {
         if (textareaRef.current) {
@@ -564,13 +582,6 @@ export default function ChatPage() {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-
-                            {messages.length > 0 && (
-                                <div className="text-xs text-[#d5aec4]/50 font-light">
-                                    {messages.length} message
-                                    {messages.length !== 1 ? "s" : ""}
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

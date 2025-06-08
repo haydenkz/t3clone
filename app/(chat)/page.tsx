@@ -1,5 +1,11 @@
 "use client";
-import { Send } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Send, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
@@ -23,6 +29,7 @@ interface ChatSession {
 export default function Home() {
     const [textareaHeight, setTextareaHeight] = useState(75);
     const [message, setMessage] = useState("");
+    const [model, setModel] = useState("deepseek-v3");
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const router = useRouter();
     const { isCollapsed } = useSidebar();
@@ -60,6 +67,9 @@ export default function Home() {
             chatSessions.unshift(newChatSession); // Add to beginning
             localStorage.setItem("chatSessions", JSON.stringify(chatSessions));
 
+            // Dispatch custom event to notify sidebar of changes
+            window.dispatchEvent(new CustomEvent("chatSessionsUpdated"));
+
             // Store the message to send in session storage
             sessionStorage.setItem("pendingMessage", message);
 
@@ -79,6 +89,10 @@ export default function Home() {
             e.preventDefault();
             handleSendMessage();
         }
+    };
+
+    const handleModelSelect = (selectedModel: string) => {
+        setModel(selectedModel);
     };
 
     useEffect(() => {
@@ -103,7 +117,7 @@ export default function Home() {
                 <div className="max-w-4xl mx-auto">
                     <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
                         {/* Textarea and send button */}
-                        <div className="flex items-end gap-3">
+                        <div className="flex items-end gap-3 mb-3">
                             <textarea
                                 ref={textareaRef}
                                 value={message}
@@ -121,6 +135,26 @@ export default function Home() {
                             >
                                 <Send className="w-4 h-4 text-purple-300" />
                             </button>
+                        </div>
+
+                        {/* Bottom row with model selector */}
+                        <div className="flex justify-between items-center">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-1 rounded-lg border border-white/10 hover:bg-white/10 transition-colors text-[#d5aec4] text-sm font-medium focus:outline-none">
+                                    {model}
+                                    <ChevronDown className="w-3 h-3 opacity-70" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="bg-black/80 backdrop-blur-xl border border-white/20 shadow-2xl">
+                                    <DropdownMenuItem
+                                        className="text-[#d5aec4] hover:bg-white/10 focus:bg-white/10"
+                                        onClick={() =>
+                                            handleModelSelect("deepseek-v3")
+                                        }
+                                    >
+                                        Deepseek-v3
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
                 </div>

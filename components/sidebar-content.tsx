@@ -22,22 +22,54 @@ export function SidebarContent() {
 
     // Load chat sessions from localStorage
     useEffect(() => {
-        try {
-            const savedChats = localStorage.getItem("chatSessions");
-            if (savedChats) {
-                const sessions: ChatSession[] = JSON.parse(savedChats);
-                setChatSessions(
-                    sessions.sort(
-                        (a, b) =>
-                            new Date(b.updatedAt).getTime() -
-                            new Date(a.updatedAt).getTime()
-                    )
-                );
+        const loadChatSessions = () => {
+            try {
+                const savedChats = localStorage.getItem("chatSessions");
+                if (savedChats) {
+                    const sessions: ChatSession[] = JSON.parse(savedChats);
+                    setChatSessions(
+                        sessions.sort(
+                            (a, b) =>
+                                new Date(b.updatedAt).getTime() -
+                                new Date(a.updatedAt).getTime()
+                        )
+                    );
+                }
+            } catch (error) {
+                console.error("Error loading chat sessions:", error);
             }
-        } catch (error) {
-            console.error("Error loading chat sessions:", error);
-        }
-    }, [pathname]); // Reload when pathname changes
+        };
+
+        // Load initially
+        loadChatSessions();
+
+        // Listen for localStorage changes (from other tabs or when chat sessions are updated)
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === "chatSessions") {
+                loadChatSessions();
+            }
+        };
+
+        window.addEventListener("storage", handleStorageChange);
+
+        // Also listen for custom storage events from the same tab
+        const handleCustomStorageEvent = () => {
+            loadChatSessions();
+        };
+
+        window.addEventListener(
+            "chatSessionsUpdated",
+            handleCustomStorageEvent
+        );
+
+        return () => {
+            window.removeEventListener("storage", handleStorageChange);
+            window.removeEventListener(
+                "chatSessionsUpdated",
+                handleCustomStorageEvent
+            );
+        };
+    }, []); // Remove pathname dependency
 
     const createNewChat = () => {
         router.push("/");
